@@ -232,13 +232,11 @@
 	        continue;
 	      }
 	      // All checks have passed, let's create that section!
-	      $path = APP
-	            . '/views/'
-	            . $this->subdir
+	      $path = $this->subdir
 	            . $this->prefix
 	            . $view
 	            . EXT;
-	      $this->sections[$name] = new $this->section_class($name, realpath($path));
+	      $this->sections[$name] = new $this->section_class($name, $path);
 	      $this->active = $name;
 	    }
 	  }
@@ -538,110 +536,108 @@
 
 //------------------------------------------------------------------------------
 
-/**
- * Eventing Template Library Section
- *
- * A class for creating section (not group) objects for the Template library.
- *
- * @package     Eventing
- * @subpackage  Libraries
- * @category    template
- * @author      Alexander Baldwin
- * @link        http://github.com/mynameiszanders/eventing
- */
-class E_Template_Section {
+	/**
+	 * Eventing Template Library Section
+	 *
+	 * A class for creating section (not group) objects for the Template library.
+	 *
+	 * @package     Eventing
+	 * @subpackage  Libraries
+	 * @category    template
+	 * @author      Alexander Baldwin
+	 * @link        http://github.com/mynameiszanders/eventing
+	 */
+	class E_Template_Section {
+	
+	  public    $name,
+	            $path;
+	  protected $data = array(),
+	            $CI;
 
-  public    $name,
-  $path;
-  protected $data = array(),
-  $E;
-
-  // TODO: Rewrite the class to use the format:
-  //       new E_template_section($name, $path);
-  /**
-   * Constructor Function
-   *
-   * Defines $view and $path, and links to Eventing's super object.
-   *
-   * @param string $view
-   * @param  $path
-   * @return void
-   */
-  public function __construct($name, $path) {
-    $this->name = $name;
-    $this->path = is_string($path) ? $path : '';
-    $this->E =& get_instance();
-  }
-
-  /**
-   * Variable Name Checker
-   *
-   * Checks a string to see if it can be used as a valid variable name.
-   *
-   * @access private
-   * @param string $varname
-   * @return boolean
-   */
-  protected function is_varname($varname) {
-    return preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $varname);
-  }
-
-  /**
-   * Section Name
-   *
-   * Returns the name of the section.
-   *
-   * @access public
-   * @return string
-   */
-  public function name() {
-    return $this->name;
-  }
-
-  /**
-   * Section Content
-   *
-   * Returns a views content, with data passed to it.
-   *
-   * @access public
-   * @return string
-   */
-  public function content() {
-    return $this->E->load->view($this->path, $this->data);
-  }
-
-  /**
-   * Add Data
-   *
-   * Add data to be included in the view.
-   *
-   * @return boolean
-   */
-  public function add() {
-    $args = func_get_args();
-    array_unshift($args, null);
-    unset($args[0]);
-    switch (count($args)) {
-      case 1:
-        if (!is_array($args[1])) {
-          return false;
-        }
-        break;
-      case 2:
-        $args[1] = array($args[1] => $args[2]);
-        break;
-      default:
-        // Incorrect number of arguments!
-        return false;
-        break;
-    }
-    foreach ($args[1] as $varname => $vardata)
-    {
-      if (!is_string($varname) || !$this->is_varname($varname)) {
-        continue;
-      }
-      $this->data[$varname] = $vardata;
-    }
-  }
-
-}
+	  /**
+	   * Constructor Function
+	   *
+	   * Defines $view and $path, and links to Eventing's super object.
+	   *
+	   * @param string $view
+	   * @param  $path
+	   * @return void
+	   */
+	  public function __construct($name, $path) {
+	    $this->name = $name;
+	    $this->path = is_string($path) ? $path : false;
+	    $this->CI =& get_instance();
+	  }
+	
+	  /**
+	   * Variable Name Checker
+	   *
+	   * Checks a string to see if it can be used as a valid variable name.
+	   *
+	   * @access private
+	   * @param string $varname
+	   * @return boolean
+	   */
+	  protected function is_varname($varname) {
+	    return preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $varname);
+	  }
+	
+	  /**
+	   * Section Name
+	   *
+	   * Returns the name of the section.
+	   *
+	   * @access public
+	   * @return string
+	   */
+	  public function name() {
+	    return $this->name;
+	  }
+	
+	  /**
+	   * Section Content
+	   *
+	   * Returns a views content, with data passed to it.
+	   *
+	   * @access public
+	   * @return string
+	   */
+	  public function content() {
+	    return $this->CI->load->view($this->path, $this->data, true);
+	  }
+	
+	  /**
+	   * Add Data
+	   *
+	   * Add data to be included in the view.
+	   *
+	   * @return boolean
+	   */
+	  public function add() {
+	    $args = func_get_args();
+	    array_unshift($args, null);
+	    unset($args[0]);
+	    switch (count($args)) {
+	      case 1:
+	        if (!is_array($args[1])) {
+	          return false;
+	        }
+	        break;
+	      case 2:
+	        $args[1] = array($args[1] => $args[2]);
+	        break;
+	      default:
+	        // Incorrect number of arguments!
+	        return false;
+	        break;
+	    }
+	    foreach ($args[1] as $varname => $vardata)
+	    {
+	      if (!is_string($varname) || !$this->is_varname($varname)) {
+	        continue;
+	      }
+	      $this->data[$varname] = $vardata;
+	    }
+	  }
+	
+	}
