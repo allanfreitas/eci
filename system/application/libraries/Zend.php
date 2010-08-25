@@ -99,7 +99,9 @@
     		return false;
     	}
     	$autoloader = 'Zend_Loader_Autoloader';
-    	// Get the path from the class name, just like Zend does.
+    	// Get the path from the class name, just like Zend does. We are using
+    	// ".php" as the extension, instead of using the EXT constant because we
+    	// are referencing a file that is part of a separate framework.
     	$relpath = str_replace('_', '/', $autoloader) . '.php';
     	$abspath = $this->path . '/' . $relfile;
     	// Check that the include path was successfully altered, that the file
