@@ -1,120 +1,152 @@
-<?php
-
- /**
-  * Eventing Framework URI Library
-  *
-  * Eventing PHP Framework by Alexander Baldwin <zanders@zafr.net>.
-  * http://eventing.zafr.net/
-  * The Eventing Framework is an object-orientated PHP Framework, designed to rapidly build applications.
-  * Enable libraries from the Zend Framework to be included with the Eventing Framework.
-  * Because of the way Zend uses namespaces in its classes (not to be confused with real namespaces,
-  * supported in PHP since 5.3), you don't need to worry about any libraries conflicting with any from
-  * Eventing.
-  *
-  * @category   Eventing
-  * @package    Libraries
-  * @subpackage zend
-  * @author     Alexander Baldwin
-  * @copyright  (c) 2009 Alexander Baldwin
-  * @license    http://www.gnu.org/licenses/gpl.txt - GNU General Public License
-  * @version    v0.4
-  * @link       http://github.com/mynameiszanders/eventing
-  * @since      v0.1
+<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * CodeIgniter
+ *
+ * An open source application development framework for PHP 4.3.2 or newer
+ *
+ * @package   CodeIgniter
+ * @author    ExpressionEngine Dev Team
+ * @copyright Copyright (c) 2008 - 2010, EllisLab, Inc.
+ * @license   http://codeigniter.com/user_guide/license.html
+ * @link    http://codeigniter.com
+ * @since   Version 1.0
+ * @filesource
  */
 
-    if(!defined('E_FRAMEWORK')){headers_sent()||header('HTTP/1.1 404 Not Found',true,404);exit('Direct script access is disallowed.');}
+// ------------------------------------------------------------------------
 
-    class E_zend
-    {
+	/**
+	 * CodeIgniter Zend Loader Class
+	 *
+	 * This class enables you to include the Zend Libraries to the include path,
+	 * enable the autoloader and use any of the Zend Libraries on the fly.
+	 * Providing you actually have the Zend Libraries, of course.
+	 * Because of the way Zend uses namespaces in its classes (not to be confused
+	 * with real namespaces, supported in PHP since 5.3), you don't need to worry
+	 * about any libraries conflicting with any from CodeIgniter.
+	 * Please remember to read the license regarding Zend's Framework before
+	 * using.
+	 *
+	 * @package   CodeIgniter
+	 * @subpackage  Libraries
+	 * @category  Libraries
+	 * @author    Alexander Baldwin
+	 * @copyright  (c) 2009 Alexander Baldwin
+	 * @license    MIT License
+	 * @link    <unknown>
+	 */
+  class MY_Zend {
 
-        protected $path = false, $autoload = true, $loaded = false;
+    protected $path = false,
+              $loaded = false;
 
-        /**
-         * Constructor Function
-         *
-         * Due to the way the load_class() function works, you will not be able to get a boolean
-         * value as to whether the Zend Libraries have successfully loaded.
-         *
-         * @return void
-         */
-        public function __construct()
-        {
-            // Grab the path to the Zend Framework libraries from the config file.
-            $this->set_path(c('zend_container_path'));
-            // Decide whether the user wants the libraries to load automatically.
-            $this->autoload(c('zend_autoload'));
-            // Attempt to load the Zend Libraries straight away. After all, they wouldn't of loaded
-            // this library if they didn't want them! If it fails, they can always specify the
-            // requirements after this constructor function.
-            $this->load();
-        }
-
-        /**
-         * Set Zend Path
-         *
-         * @param string $path
-         * @return boolean
-         */
-        public function set_path($path)
-        {
-            // The path to the Zend Libraries must be an existing directory, which must also have the
-            // "Zend" folder as a direct descendant.
-            $path = realpath($path);
-            $valid = is_string($path) && is_dir($path . '/Zend');
-            if($valid)
-            {
-                $this->path = $path;
-            }
-            return $valid;
-        }
-        
-        /**
-         * Autoload Setting
-         *
-         * @param boolean $autoload
-         * @return void
-         */
-        public function autoload($autoload)
-        {
-            $this->autoload = bool($autoload);
-        }
-
-        /**
-         * Load Zend Libraries
-         *
-         * @return boolean
-         */
-        public function load()
-        {
-            if($this->loaded)
-            {
-                return true;
-            }
-            if(!is_string($this->path))
-            {
-                return false;
-            }
-            $set = set_include_path(
-                implode(PATH_SEPARATOR, array(
-                    $this->path,
-                    get_include_path()
-                ))
-            );
-            if(!$set || !file_exists($this->path . '/Zend/Loader/Autoloader' . EXT))
-            {
-                return false;
-            }
-            if($this->autoload)
-            {
-                require_once 'Zend/Loader/Autoloader' . EXT;
-                if(!class_exists('Zend_Loader_Autoloader'))
-                {
-                    return false;
-                }
-                Zend_Loader_Autoloader::getInstance();
-            }
-            $this->loaded = true;
-            return true;
-        }
-
+    /**
+     * Constructor Function
+     *
+     * If the path has been passed in the params array, try to load the Zend
+     * Libraries automatically.
+     *
+     * @access public
+     * @param array $params
+     * @return boolean
+     */
+    public function __construct($params = false) {
+    	log_message('debug', 'Zend Class Initialized');
+    	// If parameters have been passed whilst loading the library...
+      if(is_array($params)) {
+      	if(isset($params['path']) && is_string($params['path'])) {
+      		$this->set_path($params['path']);
+      		return $this->load();
+      	}
+      }
     }
+
+    /**
+     * Set Path
+     * 
+     * Set the path to the Zend Libraries, with simple checks (like, you know,
+     * does it exist?).
+     * 
+     * @access public
+     * @param string $path
+     * @return boolean
+     */
+    public function set_path($path) {
+    	$path = realpath($path);
+    	$valid = is_string($path) && is_dir($path . '/Zend');
+    	if($valid) {
+    		// Set the path, getting rid of double path separators that may creep in
+    		// due to inconsistant path. I'm looking at you Windows!
+    		$this->path = realpath($path);
+    	}
+    	return $valid;
+    }
+    
+    /**
+     * Load Zend Libraries
+     * 
+     * Perform checks to make sure the Zend Libraries are there, then include
+     * the Zend Autoloader and grab an instance of it.
+     * 
+     * @access public
+     * @return boolean
+     */
+    public function load() {
+    	if($this->loaded) {
+    		return true;
+    	}
+    	if(!is_string($this->path)) {
+    		return false;
+    	}
+    	$autoloader = 'Zend_Loader_Autoloader';
+    	// Get the path from the class name, just like Zend does.
+    	$relpath = str_replace('_', '/', $autoloader) . '.php';
+    	$abspath = $this->path . '/' . $relfile;
+    	// Check that the include path was successfully altered, that the file
+    	// exists, and can be accessed using the relative path (second check that
+    	// the include path was successfully altered).
+    	if (!$this->set_include($path)
+    	 || !file_exists($abspath)
+    	 || !file_exists($relpath)
+    	) {
+    		return false;
+    	}
+    	// Include the file and grab an instance of the class.
+    	require_once $autoloader;
+    	if(!class_exists('Zend_Loader_Autoloader')) {
+    		return false;
+    	}
+    	Zend_Loader_Autoloader::getInstance();
+    	// Set a flag saying that we have now loaded it, so we don't repeat
+    	// ourselves.
+    	$this->loaded = true;
+    	log_message('debug', 'Zend Libraries Loaded');
+    	return true;
+    }
+
+    /**
+     * Set Include Path
+     * 
+     * Nifty function for adding a path to PHP's global include path variable.
+     * 
+     * @access protected
+     * @param string $path
+     * @return boolean
+     */
+    protected function set_include($path) {
+    	$path = realpath($path);
+    	if(!is_string($path)) {
+    		return false;
+    	}
+    	return set_include_path(
+        implode(
+          PATH_SEPARATOR,
+          array(
+            $path,
+            get_include_path()
+          )
+        )
+      );
+    }
+    
+  }
