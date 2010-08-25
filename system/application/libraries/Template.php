@@ -37,6 +37,7 @@
               $subdir = '',
               $prefix = '',
               $active = false,
+              $CI,
               // The following is hard-coded, and should not be changed.
               $section_class = 'MY_Template_Section',
               $valid_name = '[a-zA-Z_][a-zA-Z0-9_]*',
@@ -53,6 +54,7 @@
      */
     public function __construct($params = false) {
     	log_message('debug', 'Template Class Initialized');
+    	$this->CI =& get_instance();
     	// If parameters have been passed, set them now so that the user does not
     	// have to call the individual methods later.
     	if(is_array($params)) {
@@ -201,311 +203,308 @@
 	    return true;
 	  }
 
-  /**
-   * Create Sections from Views
-   *
-   * @access public
-   * @param  array  $views
-   * @return void
-   */
-  public function create($views) {
-    if (!is_array($views) || !count($views)) {
-      return;
-    }
-    foreach($views as $name => $view) {
-      // If the section already exists, there is no point creating a new one;
-      // you'd lose all your data!
-      if ($this->section_exists($name)) {
-        continue;
-      }
-      // Shortcut for lazy people, if no array key is given, use the view as
-      // the name. If something other than a valid string is passed as the key
-      // just continue.
-      $name = is_int($name) ? $view : $name;
-      if (!$this->is_varname($name)) {
-        continue;
-      }
-      // You can't makea section if the view doesn't exist!
-      if (!$this->view_exists($view)) {
-        continue;
-      }
-      // All checks have passed, let's create that section!
-      $path = APP
-      . 'themes/'
-      . $this->theme
-      . $this->subdir
-      . $this->prefix
-      . $view
-      . EXT;
-      $this->sections[$name] = new $this->section_class($name, $path);
-      $this->active = $name;
-    }
-  }
+	  /**
+	   * Create Sections from Views
+	   *
+	   * @access public
+	   * @param  array $views
+	   * @return void
+	   */
+	  public function create($views) {
+	    if (!is_array($views) || !count($views)) {
+	      return;
+	    }
+	    foreach($views as $name => $view) {
+	      // If the section already exists, there is no point creating a new one;
+	      // you'd lose all your data!
+	      if ($this->section_exists($name)) {
+	        continue;
+	      }
+	      // Shortcut for lazy people, if no array key is given, use the view as
+	      // the name. If something other than a valid string is passed as the key
+	      // just continue.
+	      $name = is_int($name) ? $view : $name;
+	      if (!$this->is_varname($name)) {
+	        continue;
+	      }
+	      // You can't make a section if the view doesn't exist!
+	      if (!$this->view_exists($view)) {
+	        continue;
+	      }
+	      // All checks have passed, let's create that section!
+	      $path = APP
+	            . '/views/'
+	            . $this->subdir
+	            . $this->prefix
+	            . $view
+	            . EXT;
+	      $this->sections[$name] = new $this->section_class($name, realpath($path));
+	      $this->active = $name;
+	    }
+	  }
 
-  /**
-   * Set Active
-   *
-   * @access public
-   * @param  string|object $section
-   * @return boolean
-   */
-  public function active($section) {
-    $section = $this->section_name($section);
-    if (!$this->section_exists($section)) {
-      return false;
-    }
-    $this->active = $section;
-    return true;
-  }
+	  /**
+	   * Set Active
+	   *
+	   * @access public
+	   * @param  string|object $section
+	   * @return boolean
+	   */
+	  public function active($section) {
+	    $section = $this->section_name($section);
+	    if (!$this->section_exists($section)) {
+	      return false;
+	    }
+	    $this->active = $section;
+	    return true;
+	  }
 
-  /**
-   * Get Section
-   *
-   * Returns the section specified, else returns false. If you stick with the
-   * default value, it will return the last activated section.
-   *
-   * @access public
-   * @param  string|object $section
-   * @return object
-   */
-  public function section($section = true) {
-    if (isset($this->sections[$section])) {
-      return $this->sections[$section];
-    }
-    if ($section === true && isset($this->sections[$this->active])) {
-      return $this->sections[$this->active];
-    }
-    // If we can't find either, return nothing (void).
-    return;
-  }
+	  /**
+	   * Get Section
+	   *
+	   * Returns the section specified, else returns false. If you stick with the
+	   * default value, it will return the last activated section.
+	   *
+	   * @access public
+	   * @param  string|true $section
+	   * @return object|void
+	   */
+	  public function section($section = true) {
+	    if (isset($this->sections[$section])) {
+	      return $this->sections[$section];
+	    }
+	    if ($section === true && isset($this->sections[$this->active])) {
+	      return $this->sections[$this->active];
+	    }
+	    // If we can't find either, return nothing (void).
+	    return;
+	  }
 
-  /**
-   * Link Sections
-   *
-   * @access public
-   * @param  array $links
-   * @return void
-   */
-  public function link($links) {
+	  /**
+	   * Link Sections
+	   *
+	   * @access public
+	   * @param  array $links
+	   * @return void
+	   */
+	  public function link($links) {
+	
+	    if (!is_array($links)) {
+	      return;
+	    }
+	    foreach($links as $section => $imports) {
+	      $section = $this->section_name($section);
+	      if (!$this->section_exists($section)) {
+	        continue;
+	      }
+	      // Make sure that it is an array!
+	      $imports = (array) $imports;
+	      if (!isset($this->links[$section]) || !is_array($this->links[$section])) {
+	        $this->links[$section] = array();
+	      }
+	      // Loop through the imports, making sure each one exists.
+	      foreach ($imports as $import) {
+	        if (!$this->section_exists($import)
+	        || in_array($import, $this->links[$section])) {
+	          continue;
+	        }
+	        $this->links[$section][] = $import;
+	      }
+	    }
+	  }
 
-    if (!is_array($links)) {
-      return;
-    }
-    foreach($links as $section => $imports) {
-      $section = $this->section_name($section);
-      if (!$this->section_exists($section)) {
-        continue;
-      }
-      // Make sure that it is an array!
-      $imports = (array) $imports;
-      if (!isset($this->links[$section]) || !is_array($this->links[$section])) {
-        $this->links[$section] = array();
-      }
-      // Loop through the imports, making sure each one exists.
-      foreach ($imports as $import) {
-        if (!$this->section_exists($import)
-        || in_array($import, $this->links[$section])) {
-          continue;
-        }
-        $this->links[$section][] = $import;
-      }
-    }
-  }
+	  /**
+	   * Group Sections
+	   *
+	   * @access public
+	   * @param  string  $name
+	   * @param  array   $sections
+	   * @return boolean
+	   */
+	  public function group($name, $sections) {
+	    if ($this->section_exists($name)
+	    || !$this->is_varname($name)
+	    || !is_array($sections)) {
+	      return false;
+	    }
+	    $this->sections[$name] = array();
+	    foreach ($sections as $section) {
+	      $section = $this->section_name($section);
+	      if ($this->section_exists($section) && is_object($this->section($section))) {
+	        $this->sections[$name][] = $section;
+	      }
+	    }
+	    return true;
+	  }
 
-  /**
-   * Group Sections
-   *
-   * @access public
-   * @param  string  $name
-   * @param  array   $sections
-   * @return boolean
-   */
-  public function group($name, $sections) {
-    if ($this->section_exists($name)
-    || !$this->is_varname($name)
-    || !is_array($sections)) {
-      return false;
-    }
-    $this->sections[$name] = array();
-    foreach ($sections as $section) {
-      $section = $this->section_name($section);
-      if ($this->section_exists($section) && is_object($this->section($section))) {
-        $this->sections[$name][] = $section;
-      }
-    }
-    return true;
-  }
+	  /**
+	   * Join Group
+	   *
+	   * Join the passed sections with the already existing group
+	   *
+	   * @access public
+	   * @param string $group
+	   * @param string|array $sections
+	   * @return boolean
+	   */
+	  public function join($group, $sections) {
+	    if(is_string($sections)) {
+	      $sections = array($sections);
+	    }
+	    if (!is_string($group)
+	    || !$this->is_varname($group)
+	    || !$this->section_exists($group)
+	    || !is_array($this->sections[$group])
+	    || !is_array($sections)
+	    ) {
+	      return false;
+	    }
+	    foreach ($sections as $section) {
+	      if($this->section_exists($section)) {
+	        $this->sections[$group][] = $section;
+	      }
+	    }
+	    return true;
+	  }
 
-  /**
-   * Join Group
-   *
-   * Join the passed sections with the already existing group
-   *
-   * @access public
-   * @param string $group
-   * @param string|array $sections
-   * @return boolean
-   */
-  public function join($group, $sections) {
-    if(is_string($sections)) {
-      $sections = array($sections);
-    }
-    if (!is_string($group)
-    || !$this->is_varname($group)
-    || !$this->section_exists($group)
-    || !is_array($this->sections[$group])
-    || !is_array($sections)
-    ) {
-      return false;
-    }
-    foreach ($sections as $section) {
-      if($this->section_exists($section)) {
-        $this->sections[$group][] = $section;
-      }
-    }
-    return true;
-  }
+	  /**
+	   * Combine Sections
+	   *
+	   * @access protected
+	   * @return boolean
+	   */
+	  protected function combine($section, $limit = 1) {
+	     
+	    // Need to go away and think about this method. Rushing into it ends up
+	    // with me thinking of something that I should of done differently 5
+	    // minutes ago.
+	
+	    if (!$this->section_exists($section)
+	    || !is_int($limit)) {
+	      return false;
+	    }
+	
+	    if (is_array($this->sections[$section])) {
+	      $sections = $this->sections[$section];
+	    }
+	    elseif (is_object($this->section($section))) {
+	      $sections = array($this->section($section)->name());
+	    }
+	    else {
+	      return false;
+	    }
+	
+	    $content = $this->concat_sections($sections, $limit);
+	
+	    if (!isset($this->links[$section]) || !is_array($this->links[$section])) {
+	      return $content;
+	    }
+	
+	    foreach ($this->links[$section] as $link) {
+	      $link = $this->section_name($link);
+	      if (!$this->section_exists($link)
+	      || !preg_match('/' . $this->valid_name . '/', $link)) {
+	        continue;
+	      }
+	
+	      // Some fancy PCRE to find the pseudo-link tag.
+	      $regex = '/'
+	      . preg_quote('<!--{', '/')
+	      . '(' . preg_quote($link, '/') . ')'
+	      . '(\[([0-9]+)?\])?'
+	      . preg_quote('}-->', '/')
+	      . '/';
+	      if ($preg = preg_match_all($regex, $content, $matches, PREG_SET_ORDER)) {
+	        foreach ($matches as $match) {
+	          // Determine how many interations are needed if the next section is
+	          // actually a group.
+	          // "" = 1, "[]" = 0 (unlimited), "[n]" = n.
+	          if (isset($match[2])) {
+	            if (isset($match[3])) {
+	              $n = (int) $match[3];
+	            }
+	            else {
+	              $n = 0;
+	            }
+	          }
+	          else {
+	            $n = 1;
+	          }
+	
+	          $content = str_replace(
+	          $match[0],
+	          $this->combine($link, $n),
+	          $content
+	          );
+	        }
+	      }
+	
+	    }
+	
+	    return $content;
+	  }
 
-  /**
-   * Combine Sections
-   *
-   * @access protected
-   * @return boolean
-   */
-  protected function combine($section, $limit = 1) {
-     
-    // Need to go away and think about this method. Rushing into it ends up
-    // with me thinking of something that I should of done differently 5
-    // minutes ago.
+	  /**
+	   * Concatenate Sections
+	   *
+	   * @access protected
+	   * @param  array        $sections
+	   * @param  integer      $max
+	   * @return string|false
+	   */
+	  protected function concat_sections($sections, $max = 0) {
+	    // If they have provided us with just one section object, turn it into an
+	    // array.
+	    if (is_object($sections) && $sections instanceof $this->section_class) {
+	      $sections = array($sections);
+	    }
+	    if (!is_int($max) || !is_array($sections) || !count($sections)) {
+	      return false;
+	    }
+	    if ($max === 0) {
+	      $max = count($sections);
+	    }
+	    $content = '';
+	    reset($sections);
+	    for ($i = 0; $i < $max; $i++) {
+	      // Grab the array element the pointer is currently at.
+	      $section = $this->section_name(current($sections));
+	      if (!$this->section_exists($section) || !is_object($this->section($section))) {
+	        continue;
+	      }
+	      $content .= $this->section($section)->content();
+	      // Move the array pointer along one.
+	      next($sections);
+	    }
+	    return $content;
+	  }
 
-    if (!$this->section_exists($section)
-    || !is_int($limit)) {
-      return false;
-    }
-
-    if (is_array($this->sections[$section])) {
-      $sections = $this->sections[$section];
-    }
-    elseif (is_object($this->section($section))) {
-      $sections = array($this->section($section)->name());
-    }
-    else {
-      return false;
-    }
-
-    $content = $this->concat_sections($sections, $limit);
-
-    if (!isset($this->links[$section]) || !is_array($this->links[$section])) {
-      return $content;
-    }
-
-    foreach ($this->links[$section] as $link) {
-      $link = $this->section_name($link);
-      if (!$this->section_exists($link)
-      || !preg_match('/' . $this->valid_name . '/', $link)) {
-        continue;
-      }
-
-      // Some fancy PCRE to find the pseudo-link tag.
-      $regex = '/'
-      . preg_quote('<!--{', '/')
-      . '(' . preg_quote($link, '/') . ')'
-      . '(\[([0-9]+)?\])?'
-      . preg_quote('}-->', '/')
-      . '/';
-      if ($preg = preg_match_all($regex, $content, $matches, PREG_SET_ORDER)) {
-        foreach ($matches as $match) {
-          // Determine how many interations are needed if the next section is
-          // actually a group.
-          // "" = 1, "[]" = 0 (unlimited), "[n]" = n.
-          if (isset($match[2])) {
-            if (isset($match[3])) {
-              $n = (int) $match[3];
-            }
-            else {
-              $n = 0;
-            }
-          }
-          else {
-            $n = 1;
-          }
-
-          $content = str_replace(
-          $match[0],
-          $this->combine($link, $n),
-          $content
-          );
-        }
-      }
-
-    }
-
-    return $content;
-  }
-
-  /**
-   * Concatenate Sections
-   *
-   * @access protected
-   * @param  array        $sections
-   * @param  integer      $max
-   * @return string|false
-   */
-  protected function concat_sections($sections, $max = 0) {
-    // If they have provided us with just one section object, turn it into an
-    // array.
-    if (is_object($sections) && $sections instanceof $this->section_class) {
-      $sections = array($sections);
-    }
-    if (!is_int($max) || !is_array($sections) || !count($sections)) {
-      return false;
-    }
-    if ($max === 0) {
-      $max = count($sections);
-    }
-    $content = '';
-    reset($sections);
-    for ($i = 0; $i < $max; $i++) {
-      // Grab the array element the pointer is currently at.
-      $section = $this->section_name(current($sections));
-      if (!$this->section_exists($section) || !is_object($this->section($section))) {
-        continue;
-      }
-      $content .= $this->section($section)->content();
-      // Move the array pointer along one.
-      next($sections);
-    }
-    return $content;
-  }
-
-  /**
-   * Load Section Tree
-   *
-   * @access public
-   * @param  string|object $section
-   * @return boolean
-   */
-  public function load($section) {
-    $section = $this->section_name($section);
-    // You are required to pass a valid section, groups are not allowed.
-    if (!$this->section_exists($section)
-    || !is_object($this->section($section))) {
-      return false;
-    }
-    $rendered = $this->combine($section);
-    if (!is_string($rendered)) {
-      return false;
-    }
-    $E =& get_instance();
-    if (!isset($E->output)) {
-      echo $rendered;
-    }
-    else {
-      $E->output->append_output($rendered);
-    }
-    log_message('debug', 'Template Class Section Loaded: ' . $section);
-    return true;
-  }
+	  /**
+	   * Load Section Tree
+	   *
+	   * @access public
+	   * @param string|object $section
+	   * @param boolean $append
+	   * @return boolean
+	   */
+	  public function load($section, $append = false) {
+	    $section = $this->section_name($section);
+	    // You are required to pass a valid section, groups are not allowed.
+	    if (!$this->section_exists($section)
+	    || !is_object($this->section($section))) {
+	      return false;
+	    }
+	    $rendered = $this->combine($section);
+	    if (!is_string($rendered)) {
+	      return false;
+	    }
+	    $method = $append
+	            ? 'append_output'
+	            : 'set_output';
+	    $this->CI->output->$method($rendered);
+	    log_message('debug', 'Template Class Sent Output: ' . $section);
+	    return true;
+	  }
 
   /**
    * Load Config
