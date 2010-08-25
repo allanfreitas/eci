@@ -514,7 +514,7 @@
    * @access public
    * @param string $config_file
    * @return boolean
-   */
+   
   public function load_config($config) {
     // If the config file is not a string, we won't be able to load it anyway.
     if(!is_string($config)) {
@@ -532,6 +532,7 @@
     isset($config['prefix']) && $this->set_prefix($config['prefix']);
     // Now to iterate over the rest...
   }
+  /**/
   
 }
 
