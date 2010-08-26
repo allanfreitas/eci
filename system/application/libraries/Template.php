@@ -547,7 +547,7 @@
 	 * @author      Alexander Baldwin
 	 * @link        http://github.com/mynameiszanders/eventing
 	 */
-	class E_Template_Section {
+	class MY_Template_Section {
 	
 	  public    $name,
 	            $path;
