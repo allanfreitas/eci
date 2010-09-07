@@ -30,9 +30,21 @@
    * @license    http://www.opensource.org/licenses/mit-license.php MIT License
    * @link       <unknown>
    */
-  class MY_URI {
+  class MY_URI extends CI_URI {
   	
   	public $url_suffix = false;
+  	
+  	/**
+  	 * Constructor Function
+  	 * 
+  	 * Call the parent constructor function.
+  	 * 
+  	 * @access public
+  	 * @return void
+  	 */
+  	function MY_URI() {
+  		parent::CI_URI();
+  	}
   	
   	/**
   	 * Remove URL Suffix
